@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { Client } from "pg";
+import { INewResource } from "./interfaces";
 
 const app = express();
 app.use(express.json());
@@ -134,14 +135,51 @@ app.post<{ userid: string; resourceid: string; liked: string }>(
       );
       const allLikeReactions = likesQueryResponse.rows;
       client.query("COMMIT");
-      res
-        .status(200)
-        .json({
-          message: "Reaction (like or dislike) added successfully to DB",
-        });
+      res.status(200).json({
+        message: "Reaction (like or dislike) added successfully to DB",
+      });
     } catch (error) {
       console.error(error);
       res.status(404).json({ message: "error, adding like to database" });
+    }
+  }
+);
+
+//------------------------------------------------post a resource to DB
+app.post<{ userid: string }, {}, { newResourceData: INewResource }>(
+  "/resources/:userid",
+  async (req, res) => {
+    const { title, link, description, tags, type, usage } =
+      req.body.newResourceData;
+    try {
+      const queryValues = [
+        req.params.userid,
+        title,
+        link,
+        description,
+        tags,
+        type,
+        usage,
+      ];
+      const queryResponse = await client.query(
+        `
+    INSERT INTO RESOURCES (user_id,
+      title,
+      link,
+      description,
+      tags,
+      type,
+      usage)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *;
+    `,
+        queryValues
+      );
+      const newlyCreatedPost = queryResponse.rows[0];
+      res.status(200).json(newlyCreatedPost);
+    } catch (error) {
+      console.error(error);
+      res.status(404).json({ message: "error, posting a new post to DB" });
     }
   }
 );
