@@ -11,7 +11,7 @@ dotenv.config();
 const PORT_NUMBER = process.env.PORT ?? 4000;
 const client = new Client(process.env.DATABASE_URL);
 client.connect();
-
+//comment
 interface user {
   id: number;
   username: string;
@@ -123,3 +123,4 @@ app.post<{ userid: string; resourceid: string; liked: string }>(
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
 });
+``;
