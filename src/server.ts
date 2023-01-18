@@ -18,6 +18,8 @@ interface user {
   isFaculty: boolean;
 }
 
+//========================GET================================
+
 //------------------------------------------------gets all users
 app.get("/users", async (req, res) => {
   try {
@@ -65,6 +67,58 @@ app.get("/resources", async (req, res) => {
     res.status(404).json({ message: "error, get all resources" });
   }
 });
+
+//------------------------------------------------gets likes given a resource_id
+app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
+  try {
+    const queryValues = [req.params.userid];
+    const queryResponse = await client.query(
+      `
+    SELECT *
+    FROM likes
+    WHERE user_id = $1
+    `,
+      queryValues
+    );
+    const allLikeReactions = queryResponse.rows;
+    res.status(200).json(allLikeReactions);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(404)
+      .json({ message: "error, get all like reactions for current user" });
+  }
+});
+
+//========================POST================================
+
+//------------------------------------------------posts likes given a resource_id and a user_id
+app.post<{ userid: string; resourceid: string; liked: string }>(
+  "/likes/:resourceid/:userid",
+  async (req, res) => {
+    try {
+      const queryValues = [
+        req.params.userid,
+        req.params.resourceid,
+        req.params.liked,
+      ];
+      const queryResponse = await client.query(
+        `
+        INSERT INTO likes (user_id, resource_id, liked)
+        VALUES ($1, $2, $3);
+    `,
+        queryValues
+      );
+      const allLikeReactions = queryResponse.rows;
+      res.status(200).json(allLikeReactions);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(404)
+        .json({ message: "error, get all like reactions for current user" });
+    }
+  }
+);
 
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
