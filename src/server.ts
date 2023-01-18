@@ -94,28 +94,54 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
 
 //------------------------------------------------posts likes given a resource_id and a user_id
 app.post<{ userid: string; resourceid: string; liked: string }>(
-  "/likes/:resourceid/:userid",
+  "/likes/:resourceid/:userid/:liked",
   async (req, res) => {
     try {
-      const queryValues = [
-        req.params.userid,
+      client.query("BEGIN");
+
+      //Update likes in resources table
+      const resourceQueryValues = [req.params.resourceid];
+      let resourceQueryString = "";
+      if (req.params.liked) {
+        resourceQueryString = `UPDATE resources 
+        SET likes = likes + 1
+        WHERE id = $1;`;
+      } else {
+        resourceQueryString = `UPDATE resources 
+        SET dislikes = dislikes + 1
+        WHERE id = $1;`;
+      }
+      const resourcesQueryResponse = await client.query(
+        resourceQueryString,
+        resourceQueryValues
+      );
+
+      //INSERT like into likes table
+      const likesQueryValues = [
         req.params.resourceid,
+        req.params.userid,
         req.params.liked,
       ];
-      const queryResponse = await client.query(
+      const likesQueryResponse = await client.query(
         `
-        INSERT INTO likes (user_id, resource_id, liked)
-        VALUES ($1, $2, $3);
+        INSERT INTO likes (resource_id, user_id, liked)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (resource_id, user_id)
+          DO UPDATE SET liked = False
+          RETURNING *;
     `,
-        queryValues
+        likesQueryValues
       );
-      const allLikeReactions = queryResponse.rows;
-      res.status(200).json(allLikeReactions);
+      const allLikeReactions = likesQueryResponse.rows;
+      client.query("COMMIT");
+      res
+        .status(200)
+        .json({
+          message: "Reaction (like or dislike) added successfully to DB",
+        });
     } catch (error) {
       console.error(error);
-      res
-        .status(404)
-        .json({ message: "error, get all like reactions for current user" });
+      res.status(404).json({ message: "error, adding like to database" });
     }
   }
 );
