@@ -134,7 +134,11 @@ app.post<{ userid: string; resourceid: string; liked: string }>(
       );
       const allLikeReactions = likesQueryResponse.rows;
       client.query("COMMIT");
-      res.status(200).json({ message: "Like added successfully" });
+      res
+        .status(200)
+        .json({
+          message: "Reaction (like or dislike) added successfully to DB",
+        });
     } catch (error) {
       console.error(error);
       res.status(404).json({ message: "error, adding like to database" });
