@@ -39,3 +39,17 @@ create table comments (
     foreign key (resource_id) references resources(id),
     foreign key (user_id) references users(id)
     );
+
+---------------------------------- create study list table 
+ drop table study_list;
+ 
+create table study_list (
+	id serial,
+    resource_id int ,
+    user_id int,
+    post_date timestamp not null default current_timestamp,
+  	primary key (resource_id, user_id),
+    foreign key (resource_id) references resources(id),
+    foreign key (user_id) references users(id)
+  	);
+    
