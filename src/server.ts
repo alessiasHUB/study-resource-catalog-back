@@ -89,6 +89,23 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
       .json({ message: "error, get all like reactions for current user" });
   }
 });
+//--------------------------------------------- get comments for resource
+app.get<{resourceid: string}>("/comments/:resourceid", async (req, res) => {
+  try {
+    const queryValues = [req.params.resourceid];
+    const queryResponse = await client.query(
+      'SELECT * FROM comments WHERE resource_id = $1', queryValues
+    )
+    const allComments = queryResponse.rows;
+    res.status(200).json(allComments)
+  } catch (error) {
+    console.log(error)
+    res
+    .status(400)
+    .json({message: "error, get all comments from current resource"})
+  }
+})
+
 
 //========================POST================================
 

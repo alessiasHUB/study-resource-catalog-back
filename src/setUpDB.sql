@@ -27,3 +27,15 @@ liked BOOLEAN,
 PRIMARY KEY (user_id, resource_id),
 FOREIGN KEY (resource_id) REFERENCES resources(id)
 );
+
+----------------------------------Create Table Comments 
+ drop table if exists comments ;
+create table comments (
+	id serial primary key,
+    resource_id int,
+    user_id int,
+    post_date timestamp not null default current_timestamp,
+    text varchar(500),
+    foreign key (resource_id) references resources(id),
+    foreign key (user_id) references users(id)
+    );
