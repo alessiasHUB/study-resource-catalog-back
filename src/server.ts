@@ -168,7 +168,7 @@ app.post<{resourceid: string, userid: string},{},{text:string}>("/comments/:user
   }
 })
 //-------------------------------------------------------- post a resource onto studyList
-app.post<{resourceid: string, userid: string}>("/study_list:resourceid/:userid", async (req,res) => {
+app.post<{resourceid: string, userid: string}>("/study_list/:resourceid/:userid", async (req,res) => {
   try{
     const queryValues = [req.params.resourceid, req.params.userid];
     const queryResponse = await client.query(
