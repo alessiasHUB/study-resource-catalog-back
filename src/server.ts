@@ -60,6 +60,7 @@ app.get("/resources", async (req, res) => {
     const queryResponse = await client.query(`
     SELECT * 
     FROM resources
+    ORDER BY post_date
     `);
     const allResources = queryResponse.rows;
     res.status(200).json(allResources);
@@ -103,7 +104,7 @@ app.post<{ userid: string; resourceid: string; liked: string }>(
       //Update likes in resources table
       const resourceQueryValues = [req.params.resourceid];
       let resourceQueryString = "";
-      if (req.params.liked) {
+      if (req.params.liked === "true") {
         resourceQueryString = `UPDATE resources 
         SET likes = likes + 1
         WHERE id = $1;`;
