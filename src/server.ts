@@ -95,97 +95,72 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
 //========================POST================================
 
 //------------------------------------------------posts likes given a resource_id and a user_id
-app.post<{ userid: string; resourceid: string; liked: string }>(
-  "/likes/:resourceid/:userid/:liked",
+app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
+  "/likes/:resourceid/:userid",
   async (req, res) => {
+    const currentReaction = req.body.liked;
+    const userId = req.params.userid;
+    const resourceId = req.params.resourceid;
+
     try {
       client.query("BEGIN");
       //check if reaction exists in table
-      const checkForReactionValues = [req.params.userid, req.params.resourceid];
+      const checkForReactionValues = [userId, resourceId];
       const checkForReaction = await client.query(
         "SELECT * FROM likes WHERE user_id = $1 AND resource_id = $2",
         checkForReactionValues
       );
 
-      //check if reaction exists
-      if (checkForReaction.rows.length > 0) {
-        //check for current reaction type | "true" = like | "false" = dislike
-        if (checkForReaction.rows[0].liked === true) {
-          console.log("Reaction Exists already and is a like");
-          //check if user wants to like or dislike
-          if (req.params.liked === "true") {
-            res.json({ "message:": "User has already liked resource" });
-          } else if (req.params.liked === "false") {
-            const changeToDislikeValues = [
-              req.params.userid,
-              req.params.resourceid,
-            ];
-            const changeToDislikeResponse = await client.query(
-              " UPDATE likes SET liked = false WHERE user_id = $1 AND resource_id = $2 RETURNING *;",
-              changeToDislikeValues
-            );
-            //update resources table
-            const updateResourceTableValues = [req.params.resourceid];
-            const updateResourceTableResponse = await client.query(
-              `UPDATE resources 
-            SET likes = likes - 1, dislikes = dislikes + 1
-            WHERE id = $1 RETURNING *;`,
-              updateResourceTableValues
-            );
-            res.status(200).json({
-              Reaction: changeToDislikeResponse.rows[0],
-              Resource: updateResourceTableResponse.rows[0],
-            });
-          }
+      //if reaction exists and old reaction = current reaction
+      if (
+        checkForReaction.rows.length > 0 &&
+        currentReaction === checkForReaction.rows[0].liked
+      ) {
+        const userReaction = currentReaction ? "liked" : "disliked";
+        res.json({
+          "message:": `User has already ${userReaction} this resource!`,
+        });
 
-          //check for current reaction type | "true" = like | "false" = dislike
-        } else if (checkForReaction.rows[0].liked === false) {
-          console.log("Reaction Exists already and is a dislike");
-          //check if user wants to like or dislike
-          if (req.params.liked === "true") {
-            const changeTolikeValues = [
-              req.params.userid,
-              req.params.resourceid,
-            ];
-            const changeTolikeResponse = await client.query(
-              " UPDATE likes SET liked = true WHERE user_id = $1 AND resource_id = $2 RETURNING *;",
-              changeTolikeValues
-            );
-            //update resources table
-            const updateResourceTableValues = [req.params.resourceid];
-            const updateResourceTableResponse = await client.query(
-              `UPDATE resources 
-            SET likes = likes + 1, dislikes = dislikes - 1
-            WHERE id = $1 RETURNING *;`,
-              updateResourceTableValues
-            );
-            res.status(200).json({
-              Reaction: changeTolikeResponse.rows[0],
-              Resource: updateResourceTableResponse.rows[0],
-            });
-          } else if (req.params.liked === "false") {
-            res.json({ "message:": "User has already disliked resource" });
-          }
-        }
+        //if reaction exists and user wants to cahange theri reaction (from liked -> disliked or disliked -> liked)
+      } else if (checkForReaction.rows.length > 0) {
+        //update likes table
+        const changeToDislikeValues = [currentReaction, userId, resourceId];
+        const changeToDislikeResponse = await client.query(
+          "UPDATE likes SET liked = $1 WHERE user_id = $2 AND resource_id = $3 RETURNING *;",
+          changeToDislikeValues
+        );
+        //update resources table
+        const updateResourceTableValues = [resourceId];
+        const updateResourceTableQuery = currentReaction
+          ? `UPDATE resources 
+        SET likes = likes + 1, dislikes = dislikes - 1
+        WHERE id = $1 RETURNING *;`
+          : `UPDATE resources 
+        SET likes = likes - 1, dislikes = dislikes + 1
+        WHERE id = $1 RETURNING *;`;
+        const updateResourceTableResponse = await client.query(
+          updateResourceTableQuery,
+          updateResourceTableValues
+        );
+        res.status(200).json({
+          Reaction: changeToDislikeResponse.rows[0],
+          Resource: updateResourceTableResponse.rows[0],
+        });
 
-        //if reaction does not exist then....
+        //if reaction does not exist in table then....
       } else if (checkForReaction.rows.length < 1) {
         //Add reaction to likes table
         console.log("Adding a reaction to likes table");
-        const postAReactionValues = [
-          req.params.resourceid,
-          req.params.userid,
-          req.params.liked,
-        ];
+        const postAReactionValues = [resourceId, userId, currentReaction];
         const postAReactionResponse = await client.query(
           "INSERT INTO likes (resource_id, user_id, liked) VALUES ($1, $2, $3) RETURNING *",
           postAReactionValues
         );
 
         //Update reactions in resources table
-        const resourceQueryValues = [req.params.resourceid];
+        const resourceQueryValues = [resourceId];
         let resourceQueryString = "";
-        if (req.params.liked === "true") {
+        if (currentReaction === true) {
           resourceQueryString = `UPDATE resources 
         SET likes = likes + 1
         WHERE id = $1 RETURNING *;`;
