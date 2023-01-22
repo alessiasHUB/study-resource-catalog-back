@@ -94,7 +94,7 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
 
 //========================POST================================
 
-//------------------------------------------------posts likes given a resource_id and a user_id
+//-------------------------------------------------------posts likes given a resource_id and a user_id
 app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
   "/likes/:resourceid/:userid",
   async (req, res) => {
@@ -111,7 +111,7 @@ app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
         checkForReactionValues
       );
 
-      //if reaction exists and old reaction = current reaction
+      //--------- If reaction exists and old reaction = current reaction ----------
       if (
         checkForReaction.rows.length > 0 &&
         currentReaction === checkForReaction.rows[0].liked
@@ -121,7 +121,8 @@ app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
           "message:": `User has already ${userReaction} this resource!`,
         });
 
-        //if reaction exists and user wants to cahange theri reaction (from liked -> disliked or disliked -> liked)
+        //------ If reaction exists and user wants to change their reaction --------
+        //(from liked -> disliked or disliked -> liked)
       } else if (checkForReaction.rows.length > 0) {
         //update likes table
         const changeToDislikeValues = [currentReaction, userId, resourceId];
@@ -147,7 +148,7 @@ app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
           Resource: updateResourceTableResponse.rows[0],
         });
 
-        //if reaction does not exist in table then....
+        //-------- If reaction does not exist in table then --------
       } else if (checkForReaction.rows.length < 1) {
         //Add reaction to likes table
         console.log("Adding a reaction to likes table");
