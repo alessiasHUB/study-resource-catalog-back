@@ -94,51 +94,93 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
 
 //========================POST================================
 
-//------------------------------------------------posts likes given a resource_id and a user_id
-app.post<{ userid: string; resourceid: string; liked: string }>(
-  "/likes/:resourceid/:userid/:liked",
+//-------------------------------------------------------posts likes given a resource_id and a user_id
+app.post<{ userid: string; resourceid: string }, {}, { liked: boolean }>(
+  "/likes/:resourceid/:userid",
   async (req, res) => {
+    const currentReaction = req.body.liked;
+    const userId = req.params.userid;
+    const resourceId = req.params.resourceid;
+
     try {
       client.query("BEGIN");
+      //check if reaction exists in table
+      const checkForReactionValues = [userId, resourceId];
+      const checkForReaction = await client.query(
+        "SELECT * FROM likes WHERE user_id = $1 AND resource_id = $2",
+        checkForReactionValues
+      );
 
-      //Update likes in resources table
-      const resourceQueryValues = [req.params.resourceid];
-      let resourceQueryString = "";
-      if (req.params.liked === "true") {
-        resourceQueryString = `UPDATE resources 
+      //--------- If reaction exists and old reaction = current reaction ----------
+      if (
+        checkForReaction.rows.length > 0 &&
+        currentReaction === checkForReaction.rows[0].liked
+      ) {
+        const userReaction = currentReaction ? "liked" : "disliked";
+        res.json({
+          "message:": `User has already ${userReaction} this resource!`,
+        });
+
+        //------ If reaction exists and user wants to change their reaction --------
+        //(from liked -> disliked or disliked -> liked)
+      } else if (checkForReaction.rows.length > 0) {
+        //update likes table
+        const changeToDislikeValues = [currentReaction, userId, resourceId];
+        const changeToDislikeResponse = await client.query(
+          "UPDATE likes SET liked = $1 WHERE user_id = $2 AND resource_id = $3 RETURNING *;",
+          changeToDislikeValues
+        );
+        //update resources table
+        const updateResourceTableValues = [resourceId];
+        const updateResourceTableQuery = currentReaction
+          ? `UPDATE resources 
+        SET likes = likes + 1, dislikes = dislikes - 1
+        WHERE id = $1 RETURNING *;`
+          : `UPDATE resources 
+        SET likes = likes - 1, dislikes = dislikes + 1
+        WHERE id = $1 RETURNING *;`;
+        const updateResourceTableResponse = await client.query(
+          updateResourceTableQuery,
+          updateResourceTableValues
+        );
+        res.status(200).json({
+          Reaction: changeToDislikeResponse.rows[0],
+          Resource: updateResourceTableResponse.rows[0],
+        });
+
+        //-------- If reaction does not exist in table then --------
+      } else if (checkForReaction.rows.length < 1) {
+        //Add reaction to likes table
+        console.log("Adding a reaction to likes table");
+        const postAReactionValues = [resourceId, userId, currentReaction];
+        const postAReactionResponse = await client.query(
+          "INSERT INTO likes (resource_id, user_id, liked) VALUES ($1, $2, $3) RETURNING *",
+          postAReactionValues
+        );
+
+        //Update reactions in resources table
+        const resourceQueryValues = [resourceId];
+        let resourceQueryString = "";
+        if (currentReaction === true) {
+          resourceQueryString = `UPDATE resources 
         SET likes = likes + 1
-        WHERE id = $1;`;
-      } else {
-        resourceQueryString = `UPDATE resources 
+        WHERE id = $1 RETURNING *;`;
+        } else {
+          resourceQueryString = `UPDATE resources 
         SET dislikes = dislikes + 1
-        WHERE id = $1;`;
-      }
-      const resourcesQueryResponse = await client.query(
-        resourceQueryString,
-        resourceQueryValues
-      );
+        WHERE id = $1 RETURNING *;`;
+        }
+        const resourcesQueryResponse = await client.query(
+          resourceQueryString,
+          resourceQueryValues
+        );
 
-      //INSERT like into likes table
-      const likesQueryValues = [
-        req.params.resourceid,
-        req.params.userid,
-        req.params.liked,
-      ];
-      const likesQueryResponse = await client.query(
-        `
-        INSERT INTO likes (resource_id, user_id, liked)
-          VALUES ($1, $2, $3)
-          ON CONFLICT (resource_id, user_id)
-          DO UPDATE SET liked = False
-          RETURNING *;
-    `,
-        likesQueryValues
-      );
-      const allLikeReactions = likesQueryResponse.rows;
+        res.status(200).json({
+          Reaction: postAReactionResponse.rows[0],
+          Resource: resourcesQueryResponse.rows[0],
+        });
+      }
       client.query("COMMIT");
-      res.status(200).json({
-        message: "Reaction (like or dislike) added successfully to DB",
-      });
     } catch (error) {
       console.error(error);
       res.status(404).json({ message: "error, adding like to database" });
