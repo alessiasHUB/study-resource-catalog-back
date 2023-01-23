@@ -91,6 +91,38 @@ app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
       .json({ message: "error, get all like reactions for current user" });
   }
 });
+//--------------------------------------------- get comments for resource
+app.get<{ resourceid: string }>("/comments/:resourceid", async (req, res) => {
+  try {
+    const queryValues = [req.params.resourceid];
+    const queryResponse = await client.query(
+      "SELECT * FROM comments WHERE resource_id = $1",
+      queryValues
+    );
+    const allComments = queryResponse.rows;
+    res.status(200).json(allComments);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(400)
+      .json({ message: "error, get all comments from current resource" });
+  }
+});
+//----------------------------------------------- get study list
+app.get<{ userid: string }>("/study_list/:userid", async (req, res) => {
+  try {
+    const queryValues = [req.params.userid];
+    const queryResponse = await client.query(
+      `SELECT * FROM study_list WHERE user_id = $1`,
+      queryValues
+    );
+    const allStudyList = queryResponse.rows;
+    res.status(200).json(allStudyList);
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: "error, get study list for current user" });
+  }
+});
 
 //========================POST================================
 
@@ -226,7 +258,51 @@ app.post<{ userid: string }, {}, { newResourceData: INewResource }>(
     }
   }
 );
-
+//------------------------------------------------------------------- post a new comment
+app.post<{ resourceid: string; userid: string }, {}, { text: string }>(
+  "/comments/:userid/:resourceid",
+  async (req, res) => {
+    try {
+      const queryValues = [
+        req.params.resourceid,
+        req.params.userid,
+        req.body.text,
+      ];
+      const queryResponse = await client.query(
+        `insert into comments (resource_id, user_id, text) 
+      values ($1, $2, $3) returning *`,
+        queryValues
+      );
+      const newComment = queryResponse.rows[0];
+      res.status(200).json(newComment);
+    } catch (error) {
+      console.log(error);
+      res
+        .status(404)
+        .json({ message: "error, post a new comment on resource" });
+    }
+  }
+);
+//-------------------------------------------------------- post a resource onto studyList
+app.post<{ resourceid: string; userid: string }>(
+  "/study_list/:resourceid/:userid",
+  async (req, res) => {
+    try {
+      const queryValues = [req.params.resourceid, req.params.userid];
+      const queryResponse = await client.query(
+        `insert into study_list (resource_id, user_id ) values ($1, $2) returning *`,
+        queryValues
+      );
+      const newStudyItem = queryResponse.rows[0];
+      res.status(200).json(newStudyItem);
+    } catch (error) {
+      console.log(error);
+      res
+        .status(404)
+        .json({ message: "post a new resource to user's study list" });
+    }
+  }
+);
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
 });
