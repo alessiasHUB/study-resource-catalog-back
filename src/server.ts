@@ -123,6 +123,9 @@ app.get<{ userid: string }>("/study_list/:userid", async (req, res) => {
     res.status(404).json({ message: "error, get study list for current user" });
   }
 });
+//----------------------------------------------- get study list RESOURCES
+
+
 
 //========================POST================================
 
@@ -303,7 +306,29 @@ app.post<{ resourceid: string; userid: string }>(
     }
   }
 );
+
+//========================DELETE================================
+
+app.delete<{resource_id: string, user_id: string}>("/study_list/:resource_id/:user_id", async (req, res) => {
+  try {
+    const queryValues = [req.params.resource_id, req.params.user_id];
+    const queryResponse = await client.query(
+      `DELETE FROM study_list
+      WHERE resource_id = $1
+      AND user_id = $2
+      RETURNING *`, queryValues
+    )
+    const deletedItem = queryResponse.rows[0]
+    res.status(200).json(deletedItem);
+  }
+  catch (error) {
+    console.log(error);
+    res
+      .status(404)
+      .json({ message: "could not delete item: internal server error" });
+  }
+})
+
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
 });
-``;
