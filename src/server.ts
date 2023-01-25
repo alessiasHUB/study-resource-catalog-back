@@ -335,7 +335,6 @@ app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
   async (req, res) => {
     try {
       await client.query("BEGIN;");
-
       const queryValuesDeletingFromLikesTable = [
         req.params.resource_id,
         req.params.user_id,
@@ -349,18 +348,17 @@ app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
       const queryValuesUpdatingResourceTable = [
         req.params.resource_id,
         req.params.user_id,
-        req.body.liked,
       ];
       const queryTextUpdatingResourceTable = req.body.liked
-        ? "UPDATE resources SET like = like - 1 WHERE resource_id = $1 AND user_id = $2 RETURNING *"
-        : "UPDATE resources SET dislike = dislike - 1 WHERE resource_id = $1 AND user_id = $2 RETURNING *";
+        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 AND user_id = $2 RETURNING *"
+        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 AND user_id = $2 RETURNING *";
 
-      const queryResponseUpdatingResourceTable = await client.query(
+      const queryResResourceTable = await client.query(
         queryTextUpdatingResourceTable,
         queryValuesUpdatingResourceTable
       );
       await client.query("COMMIT;");
-      const deletedReaction = responseDeletingFromLikesTable.rows[0];
+      const deletedReaction = queryResResourceTable.rows[0];
       res.status(200).json(deletedReaction);
     } catch (error) {
       console.error(error);
