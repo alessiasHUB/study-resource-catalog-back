@@ -341,17 +341,14 @@ app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
       ];
 
       const responseDeletingFromLikesTable = await client.query(
-        "DELETE FROM likes WHERE resource_id = $1 AND user_id = $2 RETURNING *",
+        "DELETE FROM likes WHERE resource_id = $1 AND user_id = $2 RETURNING *;",
         queryValuesDeletingFromLikesTable
       );
 
-      const queryValuesUpdatingResourceTable = [
-        req.params.resource_id,
-        req.params.user_id,
-      ];
+      const queryValuesUpdatingResourceTable = [req.params.resource_id];
       const queryTextUpdatingResourceTable = req.body.liked
-        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 AND user_id = $2 RETURNING *"
-        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 AND user_id = $2 RETURNING *";
+        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;"
+        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
 
       const queryResResourceTable = await client.query(
         queryTextUpdatingResourceTable,
