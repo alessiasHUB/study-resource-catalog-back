@@ -125,8 +125,6 @@ app.get<{ userid: string }>("/study_list/:userid", async (req, res) => {
 });
 //----------------------------------------------- get study list RESOURCES
 
-
-
 //========================POST================================
 
 //-------------------------------------------------------posts likes given a resource_id and a user_id
@@ -309,25 +307,65 @@ app.post<{ resourceid: string; userid: string }>(
 
 //========================DELETE================================
 
-app.delete<{resource_id: string, user_id: string}>("/study_list/:resource_id/:user_id", async (req, res) => {
-  try {
-    const queryValues = [req.params.resource_id, req.params.user_id];
-    const queryResponse = await client.query(
-      `DELETE FROM study_list
+app.delete<{ resource_id: string; user_id: string }>(
+  "/study_list/:resource_id/:user_id",
+  async (req, res) => {
+    try {
+      const queryValues = [req.params.resource_id, req.params.user_id];
+      const queryResponse = await client.query(
+        `DELETE FROM study_list
       WHERE resource_id = $1
       AND user_id = $2
-      RETURNING *`, queryValues
-    )
-    const deletedItem = queryResponse.rows[0]
-    res.status(200).json(deletedItem);
+      RETURNING *`,
+        queryValues
+      );
+      const deletedItem = queryResponse.rows[0];
+      res.status(200).json(deletedItem);
+    } catch (error) {
+      console.log(error);
+      res
+        .status(404)
+        .json({ message: "could not delete item: internal server error" });
+    }
   }
-  catch (error) {
-    console.log(error);
-    res
-      .status(404)
-      .json({ message: "could not delete item: internal server error" });
+);
+
+app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
+  "/likes/:resource_id/:user_id",
+  async (req, res) => {
+    try {
+      await client.query("BEGIN;");
+      const queryValuesDeletingFromLikesTable = [
+        req.params.resource_id,
+        req.params.user_id,
+      ];
+
+      const responseDeletingFromLikesTable = await client.query(
+        "DELETE FROM likes WHERE resource_id = $1 AND user_id = $2 RETURNING *;",
+        queryValuesDeletingFromLikesTable
+      );
+
+      const queryValuesUpdatingResourceTable = [req.params.resource_id];
+      const queryTextUpdatingResourceTable = req.body.liked
+        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;"
+        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
+
+      const queryResResourceTable = await client.query(
+        queryTextUpdatingResourceTable,
+        queryValuesUpdatingResourceTable
+      );
+      await client.query("COMMIT;");
+      const deletedReaction = queryResResourceTable.rows[0];
+      res.status(200).json(deletedReaction);
+    } catch (error) {
+      console.error(error);
+      res.status(404).json({
+        message:
+          "could not delete reaction from likes table: internal server error",
+      });
+    }
   }
-})
+);
 
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
