@@ -70,7 +70,7 @@ app.get("/resources", async (req, res) => {
   }
 });
 
-//------------------------------------------------gets likes given a resource_id
+//------------------------------------------------gets likes given a user_id
 app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
   try {
     const queryValues = [req.params.userid];
@@ -330,42 +330,44 @@ app.delete<{ resource_id: string; user_id: string }>(
   }
 );
 
-app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
-  "/likes/:resource_id/:user_id",
-  async (req, res) => {
-    try {
-      await client.query("BEGIN;");
-      const queryValuesDeletingFromLikesTable = [
-        req.params.resource_id,
-        req.params.user_id,
-      ];
+app.delete<
+  { resource_id: string; user_id: string },
+  {},
+  {},
+  { liked: boolean }
+>("/likes/:resource_id/:user_id", async (req, res) => {
+  try {
+    await client.query("BEGIN;");
+    const queryValuesDeletingFromLikesTable = [
+      req.params.resource_id,
+      req.params.user_id,
+    ];
 
-      const responseDeletingFromLikesTable = await client.query(
-        "DELETE FROM likes WHERE resource_id = $1 AND user_id = $2 RETURNING *;",
-        queryValuesDeletingFromLikesTable
-      );
+    const responseDeletingFromLikesTable = await client.query(
+      "DELETE FROM likes WHERE resource_id = $1 AND user_id = $2 RETURNING *;",
+      queryValuesDeletingFromLikesTable
+    );
 
-      const queryValuesUpdatingResourceTable = [req.params.resource_id];
-      const queryTextUpdatingResourceTable = req.body.liked
-        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;"
-        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
+    const queryValuesUpdatingResourceTable = [req.params.resource_id];
+    const queryTextUpdatingResourceTable = req.query.liked
+      ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;"
+      : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
 
-      const queryResResourceTable = await client.query(
-        queryTextUpdatingResourceTable,
-        queryValuesUpdatingResourceTable
-      );
-      await client.query("COMMIT;");
-      const deletedReaction = queryResResourceTable.rows[0];
-      res.status(200).json(deletedReaction);
-    } catch (error) {
-      console.error(error);
-      res.status(404).json({
-        message:
-          "could not delete reaction from likes table: internal server error",
-      });
-    }
+    const queryResResourceTable = await client.query(
+      queryTextUpdatingResourceTable,
+      queryValuesUpdatingResourceTable
+    );
+    await client.query("COMMIT;");
+    const deletedReaction = queryResResourceTable.rows[0];
+    res.status(200).json(deletedReaction);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({
+      message:
+        "could not delete reaction from likes table: internal server error",
+    });
   }
-);
+});
 
 app.listen(PORT_NUMBER, () => {
   console.log(`Server is listening on port ${PORT_NUMBER}!`);
