@@ -70,6 +70,26 @@ app.get("/resources", async (req, res) => {
   }
 });
 
+//------------------------------------------------gets a specific resource if it matches the link
+app.get<{}, {}, {}, { link: string }>("/resources/link", async (req, res) => {
+  try {
+    const queryLink = [req.query.link];
+    const queryResponse = await client.query(
+      `
+    SELECT * 
+    FROM resources
+    WHERE link = $1
+    `,
+      queryLink
+    );
+    const matchingResource = queryResponse.rows;
+    res.status(200).json(matchingResource);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({ message: "error, get a specific resource" });
+  }
+});
+
 //------------------------------------------------gets likes given a user_id
 app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
   try {
