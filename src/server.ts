@@ -70,7 +70,7 @@ app.get("/resources", async (req, res) => {
   }
 });
 
-//------------------------------------------------gets likes given a resource_id
+//------------------------------------------------gets likes given a user_id
 app.get<{ userid: string }>("/likes/:userid", async (req, res) => {
   try {
     const queryValues = [req.params.userid];
@@ -330,7 +330,7 @@ app.delete<{ resource_id: string; user_id: string }>(
   }
 );
 
-app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
+app.delete<{ resource_id: string; user_id: string }, {}, {}, { liked: string }>(
   "/likes/:resource_id/:user_id",
   async (req, res) => {
     try {
@@ -346,10 +346,13 @@ app.delete<{ resource_id: string; user_id: string }, {}, { liked: boolean }>(
       );
 
       const queryValuesUpdatingResourceTable = [req.params.resource_id];
-      const queryTextUpdatingResourceTable = req.body.liked
-        ? "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;"
-        : "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
 
+      let queryTextUpdatingResourceTable =
+        "UPDATE resources SET likes = likes - 1 WHERE id = $1 RETURNING *;";
+      if (req.query.liked === "false") {
+        queryTextUpdatingResourceTable =
+          "UPDATE resources SET dislikes = dislikes - 1 WHERE id = $1 RETURNING *;";
+      }
       const queryResResourceTable = await client.query(
         queryTextUpdatingResourceTable,
         queryValuesUpdatingResourceTable

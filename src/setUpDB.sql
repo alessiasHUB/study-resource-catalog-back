@@ -53,3 +53,9 @@ create table study_list (
     foreign key (user_id) references users(id)
   	);
     
+
+----------------------------------clear resource table and likes table of reactions
+UPDATE resources
+SET likes = 0, dislikes = 0;
+
+DELETE FROM likes
