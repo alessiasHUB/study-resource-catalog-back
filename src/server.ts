@@ -83,7 +83,6 @@ app.get<{}, {}, {}, { link: string }>("/resources/link", async (req, res) => {
       queryLink
     );
     const matchingResource = queryResponse.rows;
-    console.log(matchingResource);
     res.status(200).json(matchingResource);
   } catch (error) {
     console.error(error);
