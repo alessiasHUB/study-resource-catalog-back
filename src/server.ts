@@ -124,6 +124,24 @@ app.get<{ userid: string }>("/study_list/:userid", async (req, res) => {
   }
 });
 //----------------------------------------------- get study list RESOURCES
+app.get("/study_resources/:resourceidArr", async (req, res) => { // => 4,5,2
+  try {
+    console.log(req.params.resourceidArr)
+    const resourceIDArr = req.params.resourceidArr.split(",").map(Number); // => [4, 5, 2]
+    console.log(resourceIDArr)
+    const queryResponse = await client.query(
+      `SELECT *
+       FROM resources
+       WHERE id IN ($1)`,
+       resourceIDArr
+    );
+    const allStudyListResources = queryResponse.rows;
+    res.status(200).json(allStudyListResources);
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: "error, get study list resources for current user" });
+  }
+});
 
 //========================POST================================
 
