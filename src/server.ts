@@ -3,11 +3,19 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { Client } from "pg";
 import { INewResource } from "./interfaces";
+import { EmbedBuilder, WebhookClient } from "discord.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 dotenv.config();
+
+const webhookClient = new WebhookClient(
+  {id: '1068528197408403516', token: '8DTodD8ydc-IyD5Ycpk9me3fDw_ffuQi_HNxK1VcoKt7iVOaV8wv4U3U3y_dGqGCyVea'});
+
+const embed = new EmbedBuilder()
+	.setTitle('Testing server notif from express')
+    .setURL('https://facebook.com')
 
 const PORT_NUMBER = process.env.PORT ?? 4000;
 const client = new Client(process.env.DATABASE_URL);
@@ -291,6 +299,12 @@ app.post<{ userid: string }, {}, { newResourceData: INewResource }>(
       );
       const newlyCreatedPost = queryResponse.rows[0];
       res.status(200).json(newlyCreatedPost);
+      webhookClient.send({
+        content: 'New Resource Posted',
+        username: 'Ben Murray',
+        avatarURL: 'https://i.imgur.com/AfFp7pu.png',
+        embeds: [embed],
+      });
     } catch (error) {
       console.error(error);
       res.status(404).json({ message: "error, posting a new post to DB" });
