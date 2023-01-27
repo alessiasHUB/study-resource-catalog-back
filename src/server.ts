@@ -16,9 +16,9 @@ const webhookClient = new WebhookClient({
 });
 
 function createDiscordEmbed(title: string) {
- return new EmbedBuilder()
-  .setTitle(title)
-  .setURL("https://study-resource-catalog.netlify.app/");
+  return new EmbedBuilder()
+    .setTitle(title)
+    .setURL("https://study-resource-catalog.netlify.app/");
 }
 
 const PORT_NUMBER = process.env.PORT ?? 4000;
