@@ -15,9 +15,11 @@ const webhookClient = new WebhookClient({
   token: "8DTodD8ydc-IyD5Ycpk9me3fDw_ffuQi_HNxK1VcoKt7iVOaV8wv4U3U3y_dGqGCyVea",
 });
 
-const embed = new EmbedBuilder()
-  .setTitle("Testing server notif from express")
-  .setURL("https://facebook.com");
+function createDiscordEmbed(title: string) {
+ return new EmbedBuilder()
+  .setTitle(title)
+  .setURL("https://study-resource-catalog.netlify.app/");
+}
 
 const PORT_NUMBER = process.env.PORT ?? 4000;
 const client = new Client(process.env.DATABASE_URL);
@@ -333,10 +335,10 @@ app.post<{ userid: string }, {}, { newResourceData: INewResource }>(
       const newlyCreatedPost = queryResponse.rows[0];
       res.status(200).json(newlyCreatedPost);
       webhookClient.send({
-        content: "New Resource Posted",
+        content: "New Resource Posted to SRC",
         username: "Ben Murray",
         avatarURL: "https://i.imgur.com/AfFp7pu.png",
-        embeds: [embed],
+        embeds: [createDiscordEmbed(title)],
       });
     } catch (error) {
       console.error(error);
