@@ -76,7 +76,7 @@ app.get("/resources/top", async (req, res) => {
     const queryResponse = await client.query(`
     SELECT * 
     FROM resources
-    ORDER BY likes
+    ORDER BY likes DESC
     LIMIT 5
     `);
     const allResources = queryResponse.rows;
