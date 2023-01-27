@@ -70,6 +70,40 @@ app.get("/resources", async (req, res) => {
   }
 });
 
+//------------------------------------------------gets top 5 resources
+app.get("/resources/top", async (req, res) => {
+  try {
+    const queryResponse = await client.query(`
+    SELECT * 
+    FROM resources
+    ORDER BY likes
+    LIMIT 5
+    `);
+    const allResources = queryResponse.rows;
+    res.status(200).json(allResources);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({ message: "error, get top resources" });
+  }
+});
+
+//------------------------------------------------get 5 most recent resources
+app.get("/resources/recent", async (req, res) => {
+  try {
+    const queryResponse = await client.query(`
+    SELECT * 
+    FROM resources
+    ORDER BY post_date DESC
+    LIMIT 5
+    `);
+    const allResources = queryResponse.rows;
+    res.status(200).json(allResources);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({ message: "error, get recent resources" });
+  }
+});
+
 //------------------------------------------------gets a specific resource if it matches the link
 app.get<{}, {}, {}, { link: string }>("/resources/link", async (req, res) => {
   try {
@@ -144,22 +178,25 @@ app.get<{ userid: string }>("/study_list/:userid", async (req, res) => {
   }
 });
 //----------------------------------------------- get study list RESOURCES
-app.get("/study_resources/:userID", async (req, res) => { // => 4,5,2
+app.get("/study_resources/:userID", async (req, res) => {
+  // => 4,5,2
   try {
-    console.log(req.params.userID)
+    console.log(req.params.userID);
     const queryResponse = await client.query(
       `SELECT r.id, r.user_id, r.title, r.link, r.description, r.tags, r.type, r.usage, r.post_date, r.likes, r.dislikes
       FROM study_list s
       JOIN resources r
       ON s.resource_id = r.id
       WHERE s.user_id = $1`,
-       [req.params.userID]
+      [req.params.userID]
     );
     const allStudyListResources = queryResponse.rows;
     res.status(200).json(allStudyListResources);
   } catch (error) {
     console.log(error);
-    res.status(404).json({ message: "error, get study list resources for current user" });
+    res
+      .status(404)
+      .json({ message: "error, get study list resources for current user" });
   }
 });
 
